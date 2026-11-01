@@ -1,0 +1,50 @@
+name: prep
+description: >
+  Stop if any secret the job needs is empty, then check the private code repo
+  out into code/ and set up Python. Every workflow that needs the code starts with this.
+
+inputs:
+  need:
+    description: Space-separated names of env vars (from secrets) that must be non-empty.
+    required: true
+  deploy-key:
+    description: Read-only deploy key for the private code repo.
+    required: true
+  code-repo:
+    description: owner/name of the private code repo.
+    required: true
+  pip:
+    description: Space-separated packages to install, or empty for the standard library only.
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Require secrets
+      shell: bash
+      env:
+        CODE_DEPLOY_KEY: ${{ inputs.deploy-key }}
+        CODE_REPO: ${{ inputs.code-repo }}
+        NEED: ${{ inputs.need }}
+      run: bash "$GITHUB_WORKSPACE/require_secrets.sh" CODE_DEPLOY_KEY CODE_REPO $NEED
+
+    # ref pinned: with an empty ssh-key, checkout falls back to the API with this
+    # repo's token and reports "Not Found", which reads like a wrong repo name.
+    - name: Check out the private code into code/
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.code-repo }}
+        ref: main
+        ssh-key: ${{ inputs.deploy-key }}
+        path: code
+        persist-credentials: false
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install packages
+      if: inputs.pip != ''
+      shell: bash
+      run: bash "$GITHUB_WORKSPACE/quiet.sh" python -m pip install -q ${{ inputs.pip }}

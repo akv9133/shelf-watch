@@ -1,0 +1,39 @@
+# Did the other scheduled checks actually run, and reach their code? A check
+# that never ran looks exactly like a check that passed. Checks out nothing
+# private, so it still runs, and still goes red, while the deploy key is missing.
+name: watchdog
+
+on:
+  schedule:
+    - cron: '50 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: selfcheck
+        name: The judge fires on each failure it exists for
+        run: bash quiet.sh python3 scripts/watchdog.py --selfcheck
+      - id: dog
+        name: Did every scheduled check run and reach its code
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash quiet.sh python3 scripts/watchdog.py --repo "${{ github.repository }}"
+      - name: Mail on failure
+        if: failure()
+        env:
+          STEPS_JSON: ${{ toJSON(steps) }}
+        run: python3 scripts/mail_failure.py

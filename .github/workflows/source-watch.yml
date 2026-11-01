@@ -36,12 +36,21 @@ jobs:
           deploy-key: ${{ secrets.CODE_DEPLOY_KEY }}
           code-repo: ${{ secrets.CODE_REPO }}
           pip: curl_cffi beautifulsoup4 lxml
+      - name: Check out the sync's status record
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.CODE_REPO }}
+          ref: watch
+          ssh-key: ${{ secrets.CODE_DEPLOY_KEY }}
+          path: watch
+          sparse-checkout: data/watch
+          persist-credentials: false
       - id: probe
         name: Ask each source what it lists
         working-directory: code
         run: |
           rc=0
-          python -m ci.checks.source_watch --report "$RUNNER_TEMP/report.md" || rc=$?
+          python -m ci.checks.source_watch --report "$RUNNER_TEMP/report.md" --status "$GITHUB_WORKSPACE/watch/data/watch/delta_status.json" || rc=$?
           cat "$RUNNER_TEMP/report.md" >> "$RUNNER_TEMP/out.log"
           exit $rc
       - name: Mail on failure

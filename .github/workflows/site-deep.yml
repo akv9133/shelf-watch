@@ -1,0 +1,45 @@
+# The 200-but-broken failures, the way a search crawler sees the site: robots
+# groups, the sitemap index and a sample of every sitemap kind, then each
+# sampled page's status, canonical, hreflang, structured data and text.
+# Public repo: the log shows the exit code only; the detail is mailed on failure.
+name: site-deep
+
+on:
+  schedule:
+    - cron: '5 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SITE_URL: ${{ secrets.SITE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: prep
+        uses: ./.github/actions/prep
+        with:
+          need: SITE_URL RESEND_API_KEY ALERT_EMAIL EMAIL_FROM
+          deploy-key: ${{ secrets.CODE_DEPLOY_KEY }}
+          code-repo: ${{ secrets.CODE_REPO }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - id: probe
+        name: Crawl a sample the way a search engine does
+        working-directory: code/site
+        run: BASE="$SITE_URL" SITE="$SITE_URL" bash "$GITHUB_WORKSPACE/quiet.sh" node scripts/check-seo.mjs
+      - name: Mail on failure
+        if: failure()
+        env:
+          STEPS_JSON: ${{ toJSON(steps) }}
+        run: python3 scripts/mail_failure.py

@@ -16,13 +16,15 @@ workflows live here and mount it at `code/` with a read-only deploy key.
 | `build-check` | nightly | do the private repo's tests pass on main | a test fails |
 | `source-watch` | daily | is each upstream still publishing, and is our sync keeping up | one stays ahead of us past the window, or none can be measured |
 | `freshness` | daily | did the sync run, and run clean | its record is missing, stale or carries errors |
+| `site-up` | every 6h | do the page kinds a reader opens, robots, the sitemap and covers answer 200 inside 10 s | any does not |
+| `site-deep` | daily | the 200-but-broken failures a search crawler meets: robots groups, sitemaps, canonicals, hreflang, structured data, soft 404s | any regresses |
 | `watchdog` | daily | did every scheduled check run and reach its code | any did not |
 
 A source that grew is the good case and stays green.
 
 ## Nothing here is identifying, including in the logs
 
-Everything specific arrives at run time as a secret: `CODE_REPO` (owner/name of
+Everything specific arrives at run time as a secret: `SITE_URL`, `CODE_REPO` (owner/name of
 the private repo, a secret so the checkout log masks it), `CODE_DEPLOY_KEY`
 (read-only), `RESEND_API_KEY`, `ALERT_EMAIL`, `EMAIL_FROM`.
 

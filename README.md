@@ -18,13 +18,14 @@ workflows live here and mount it at `code/` with a read-only deploy key.
 | `freshness` | daily | did the sync run, and run clean | its record is missing, stale or carries errors |
 | `site-up` | every 6h | do the page kinds a reader opens, robots, the sitemap and covers answer 200 inside 10 s | any does not |
 | `site-deep` | daily | the 200-but-broken failures a search crawler meets: robots groups, sitemaps, canonicals, hreflang, structured data, soft 404s | any regresses |
+| `cf-budget` | daily | is the hosting account inside its log allowance, and did its Workers log errors | errors were logged, the pace passes half the allowance, or the count cannot be read |
 | `watchdog` | daily | did every scheduled check run and reach its code | any did not |
 
 A source that grew is the good case and stays green.
 
 ## Nothing here is identifying, including in the logs
 
-Everything specific arrives at run time as a secret: `SITE_URL`, `CODE_REPO` (owner/name of
+Everything specific arrives at run time as a secret: `SITE_URL`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CODE_REPO` (owner/name of
 the private repo, a secret so the checkout log masks it), `CODE_DEPLOY_KEY`
 (read-only), `RESEND_API_KEY`, `ALERT_EMAIL`, `EMAIL_FROM`.
 
